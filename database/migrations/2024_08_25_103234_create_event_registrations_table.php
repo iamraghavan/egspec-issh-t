@@ -10,9 +10,9 @@ class CreateEventRegistrationsTable extends Migration
     {
         Schema::create('event_registrations', function (Blueprint $table) {
             $table->id();
-            $table->string('registration_id')->unique();
-            $table->foreignId('event_id')->constrained()->onDelete('cascade');
-            $table->string('google_uid');
+            $table->string('event_registration_id')->unique();
+            $table->foreignId('event_id')->constrained('sessions_events');
+            $table->foreignId('user_id')->constrained('users');
             $table->string('name');
             $table->string('email');
             $table->string('phone');
@@ -21,12 +21,10 @@ class CreateEventRegistrationsTable extends Migration
             $table->string('state');
             $table->string('city');
             $table->string('pincode');
-            $table->decimal('amount', 10, 2); // Store amount in decimal format
-            $table->string('payment_id')->nullable();
-            $table->string('order_id')->nullable();
-            $table->string('invoice_id')->nullable();
-            $table->string('payment_method')->nullable();
-            $table->timestamp('transaction_date')->nullable();
+            $table->decimal('amount', 10, 2);
+            $table->string('payment_id');
+            $table->string('order_id');
+            $table->string('invoice_id')->unique();
             $table->timestamps();
         });
     }

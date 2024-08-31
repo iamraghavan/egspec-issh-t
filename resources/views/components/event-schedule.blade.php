@@ -102,7 +102,9 @@
 
     }
 
-
+#register-button, #view-details-button{
+    color: #fff !important;
+}
 
 
     .modal-content h2 {
@@ -148,19 +150,55 @@
             <button data-hystclose class="hystmodal__close">Close</button>
             <div class="modal-content">
                 <h2 id="modal-title"></h2>
-                <p><strong>Date:</strong> <span id="modal-date"></span></p>
-                <p><strong>Time:</strong> <span id="modal-time"></span></p>
-                <p><strong>Venue:</strong> <span id="modal-venue"></span></p>
-                <p><strong>Mode:</strong> <span id="modal-mode"></span></p>
-                <p><strong>Description:</strong> <span id="modal-description"></span></p>
-                <p><strong>Conducted By:</strong> <span id="modal-conducted-by"></span></p>
-                <p><strong>Location:</strong> <span id="modal-location"></span></p>
-                <p><strong>Price:</strong> <span id="modal-price"></span></p>
-                <p><strong>Registration URL:</strong> <a id="modal-url" href="" target="_blank">Register</a></p>
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <td><strong>Date:</strong></td>
+                            <td id="modal-date"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Time:</strong></td>
+                            <td id="modal-time"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Venue:</strong></td>
+                            <td id="modal-venue"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mode:</strong></td>
+                            <td id="modal-mode"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Description:</strong></td>
+                            <td id="modal-description"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Conducted By:</strong></td>
+                            <td id="modal-conducted-by"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Location:</strong></td>
+                            <td id="modal-location"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Price:</strong></td>
+                            <td id="modal-price"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="modal-buttons">
+                    <a id="register-button" href="#" class="btn btn-primary">Register</a>
+                    <a id="view-details-button" href="#" class="btn btn-secondary">View Full Details</a>
+                </div>
+                <div class="modal-footer">
+                    <p>For technical support, email us at <a href="mailto:web@egspec.org">web[at]egspec[dot]org</a> or <a href="mailto:raghavan@egspec.org">raghavan[at]egspec[dot]org</a>.</p>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+
 
 
 <!-- HystModal CSS -->
@@ -170,54 +208,59 @@
 
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Initialize Bootstrap Tabs
-        var tabTriggerList = [].slice.call(document.querySelectorAll('#departmentTabs a'));
-        tabTriggerList.forEach(function (tabTriggerEl) {
-            var tabTrigger = new bootstrap.Tab(tabTriggerEl);
-            tabTrigger.show();
-        });
-
-        // Initialize HystModal
-        const modal = new HystModal({
-            linkAttributeName: "data-hystmodal"
-        });
-
-        // Function to open the modal and set content
-        function openEventDetails(event) {
-            const modalTitle = document.getElementById('modal-title');
-            const modalDate = document.getElementById('modal-date');
-            const modalTime = document.getElementById('modal-time');
-            const modalVenue = document.getElementById('modal-venue');
-            const modalMode = document.getElementById('modal-mode');
-            const modalDescription = document.getElementById('modal-description');
-            const modalConductedBy = document.getElementById('modal-conducted-by');
-            const modalLocation = document.getElementById('modal-location');
-            const modalPrice = document.getElementById('modal-price');
-            const modalUrl = document.getElementById('modal-url');
-
-            modalTitle.textContent = event.title;
-            modalDate.textContent = event.date;
-            modalTime.textContent = `${event.start_time} – ${event.end_time}`;
-            modalVenue.textContent = event.venue;
-            modalMode.textContent = event.mode;
-            modalDescription.textContent = event.description;
-            modalConductedBy.textContent = event.conducted_by;
-            modalLocation.textContent = event.location;
-            modalPrice.textContent = event.price_type === 'Idle' ? `₹${parseFloat(event.amount).toFixed(2)}` : 'Free';
-            modalUrl.href = event.meeting_url;
-        }
-
-        // Add event listeners to open modal
-        document.querySelectorAll('.row[data-event]').forEach(row => {
-            row.addEventListener('click', function () {
-                const eventData = JSON.parse(this.dataset.event);
-                openEventDetails(eventData);
-                modal.open('#eventDetailsModal');
-            });
-        });
+   document.addEventListener('DOMContentLoaded', function () {
+    // Initialize Bootstrap Tabs
+    var tabTriggerList = [].slice.call(document.querySelectorAll('#departmentTabs a'));
+    tabTriggerList.forEach(function (tabTriggerEl) {
+        var tabTrigger = new bootstrap.Tab(tabTriggerEl);
+        tabTrigger.show();
     });
 
+    // Initialize HystModal
+    const modal = new HystModal({
+        linkAttributeName: "data-hystmodal"
+    });
+
+    // Function to open the modal and set content
+    function openEventDetails(event) {
+        const modalTitle = document.getElementById('modal-title');
+        const modalDate = document.getElementById('modal-date');
+        const modalTime = document.getElementById('modal-time');
+        const modalVenue = document.getElementById('modal-venue');
+        const modalMode = document.getElementById('modal-mode');
+        const modalDescription = document.getElementById('modal-description');
+        const modalConductedBy = document.getElementById('modal-conducted-by');
+        const modalLocation = document.getElementById('modal-location');
+        const modalPrice = document.getElementById('modal-price');
+        const registerButton = document.getElementById('register-button');
+        const viewDetailsButton = document.getElementById('view-details-button');
+
+        modalTitle.textContent = event.title;
+        modalDate.textContent = event.date;
+        modalTime.textContent = `${event.start_time} – ${event.end_time}`;
+        modalVenue.textContent = event.venue;
+        modalMode.textContent = event.mode;
+        modalDescription.textContent = event.description;
+        modalConductedBy.textContent = event.conducted_by;
+        modalLocation.textContent = event.location;
+        modalPrice.textContent = event.price_type === 'Idle' ? `₹${parseFloat(event.amount).toFixed(2)}` : 'Free';
+
+        // Set the URLs for the buttons
+        registerButton.href = `{{ route('register.page', '') }}/${event.id}`;
+        viewDetailsButton.href = `{{ route('events.show', '') }}/${event.slug}`;
+
+        // Open the modal
+        modal.open('#eventDetailsModal');
+    }
+
+    // Add event listeners to open modal
+    document.querySelectorAll('.row[data-event]').forEach(row => {
+        row.addEventListener('click', function () {
+            const eventData = JSON.parse(this.dataset.event);
+            openEventDetails(eventData);
+        });
+    });
+});
 
 
 

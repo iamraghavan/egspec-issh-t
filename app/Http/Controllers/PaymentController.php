@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\PaymentRegistry;
 use Razorpay\Api\Api;
 use Illuminate\Support\Facades\Mail;
 
@@ -90,5 +91,23 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+
+    public function storePaymentDetails(Request $request)
+    {
+        $validatedData = $request->validate([
+            'event_registration_id' => 'required|integer',
+            'payment_id' => 'required|string|max:100',
+            'order_id' => 'required|string|max:100',
+            'invoice_id' => 'nullable|string|max:100',
+            'payment_method' => 'nullable|string|max:100',
+            'payment_time' => 'nullable|date',
+            'payment_data' => 'nullable|string',
+        ]);
+
+        PaymentRegistry::create($validatedData);
+
+        return response()->json(['success' => true]);
     }
 }

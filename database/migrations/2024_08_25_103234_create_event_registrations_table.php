@@ -12,7 +12,7 @@ class CreateEventRegistrationsTable extends Migration
             $table->id();
             $table->string('event_registration_id')->unique();
             $table->foreignId('event_id')->constrained('sessions_events');
-            $table->foreignId('user_id')->constrained('users');
+            $table->string('user_id'); // Ensure this matches the type of `google_id`
             $table->string('name');
             $table->string('email');
             $table->string('phone');
@@ -26,6 +26,9 @@ class CreateEventRegistrationsTable extends Migration
             $table->string('order_id');
             $table->string('invoice_id')->unique();
             $table->timestamps();
+
+            // Add the foreign key constraint
+            $table->foreign('user_id')->references('google_id')->on('users');
         });
     }
 

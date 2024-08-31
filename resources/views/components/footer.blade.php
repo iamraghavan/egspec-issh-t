@@ -104,7 +104,7 @@
                             <a href="#">Developed By Raghvan Jeeva </a>
                         </li>
                         <li>
-                            <a href="">Laravel v{{ Illuminate\Foundation\Application::VERSION }}</a>
+                            <a href="">v{{ Illuminate\Foundation\Application::VERSION }}</a>
                         </li>
                     </ul>
                 </div>

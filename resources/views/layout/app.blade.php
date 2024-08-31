@@ -40,12 +40,23 @@
 
 
 
-        {{-- <x-google-sign-in /> --}}
+        <x-google-sign-in />
 
 
         <x-header />
 
         @yield('content')
+
+        <div class="hystmodal" id="myModal" aria-hidden="true">
+            <div class="hystmodal__wrap">
+                <div class="hystmodal__window" role="dialog" aria-modal="true">
+                    <button class="hystmodal__close" data-hystclose>Close</button>
+                    <h2 id="modalTitle">Title</h2>
+                    <p id="modalMessage">Message</p>
+                </div>
+            </div>
+        </div>
+
 
         <x-footer />
 
@@ -55,6 +66,9 @@
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+        {{-- <script src="{{ mix('js/app.js') }}" defer></script> --}}
+
 
 
 
@@ -72,6 +86,21 @@
         <script src="{{ asset("/assets/js/wow.min.js") }}"></script>
         <script src="{{ asset("/assets/js/main.js") }}"></script>
         {{-- Laravel v{{ Illuminate\Foundation\Application::VERSION }} (PHP v{{ PHP_VERSION }}) --}}
+
+        <script>
+            async function fetchUserIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                document.getElementById('user-ip').innerText = data.ip;
+            } catch (error) {
+                console.error('Error fetching IP address:', error);
+                document.getElementById('user-ip').innerText = 'Unable to retrieve IP address';
+            }
+        }
+
+        window.onload = fetchUserIP;
+        </script>
     </body>
 </html>
 

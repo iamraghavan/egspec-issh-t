@@ -16,8 +16,9 @@
         "laravel/tinker": "^2.9",
         "mcamara/laravel-localization": "^2.0",
         "razorpay/razorpay": "^2.9",
-        "rinvex/country": "^2.0",
+        "rinvex/countries": "*",
         "simplesoftwareio/simple-qrcode": "^4.2",
+        "spatie/laravel-pdf": "^1.5",
         "stevebauman/location": "^7.3",
         "torann/geoip": "^3.0"
     },

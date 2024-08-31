@@ -5,26 +5,11 @@ use App\Http\Controllers\auth\VerifyController;
 use App\Http\Controllers\EventRegistration;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\PageControllers;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SessionController;
 use Illuminate\Support\Facades\Auth;
-
-
-use Razorpay\Api\Api;
-
-Route::get('/test-razorpay', function () {
-    try {
-        $api = new Api(env('RAZORPAY_KEY_ID'), env('RAZORPAY_KEY_SECRET'));
-        $order = $api->order->create([
-            'receipt' => 'order_rcptid_11',
-            'amount' => 1000, // 1000 paise = INR 10
-            'currency' => 'INR'
-        ]);
-        return response()->json($order);
-    } catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()], 500);
-    }
-});
+use App\Http\Middleware\AdminAuth;
 
 
 $ip = session('ip');
@@ -33,15 +18,20 @@ $region = session('region');
 
 
 
-// Route::post('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback'])->name('google.callback');
+Route::post('/apis/credentials/oauthclient/callback', [GoogleController::class, 'handleGoogleOneTapCallback'])->name('google.one-tap-callback');
 Route::any('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback'])->name('google.callback');
 Route::get('/logout', [GoogleController::class, 'logout'])->name('logout');
 
 Route::get('/u/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('google.login');
 
 
+Route::get('/events/sessions/thank-you', [EventRegistration::class, 'thankYou'])->name('thankYou');
+// Route::get('/events/thank-you', [EventRegistration::class, 'thankYou'])->name('events.thankYou');
+Route::get('/events/get-details/u/{id?}', [EventRegistration::class, 'getUserEventPage'])->name('events.get-reg-page');
 
 Route::get('/events/sessions/register/{id?}', [EventRegistration::class, 'getRegister'])->name('register.page');
+
+Route::get('/events/sessions/register/download-pdf/{event_registration_id}', [EventRegistration::class, 'downloadPdf'])->name('pdf.download');
 
 Route::post('/events/sessions/register', [EventRegistration::class, 'postRegister'])->name('register.post');
 
@@ -62,12 +52,18 @@ Route::post('/payment/success', [PaymentController::class, 'handlePayment'])->na
 Route::get('/payment/success', [PaymentController::class, 'paymentSuccess'])->name('payment.success');
 Route::get('/payment/failure', [PaymentController::class, 'paymentFailure'])->name('payment.failure');
 Route::post('/create-razorpay-order', [PaymentController::class, 'createOrder']);
-
+Route::post('/store-payment-details', [PaymentController::class, 'storePaymentDetails'])->name('store.payment.details');
 
 // Admin routes
 Route::middleware('guest:admin')->group(function () {
     Route::get('/admin/login', [AdminController::class, 'showLoginForm'])->name('login');
     Route::post('/auth/admin/login', [VerifyController::class, 'login'])->name('auth.admin-login');
+});
+Route::middleware('auth')->group(function () {
+    Route::get('/u/dashboard/{google_uid}', [UserController::class, 'dashboard'])->name('user.dashboard');
+
+    Route::get('/u/dashboard/activity-logs/{google_uid}', [UserController::class, 'activityLogs'])->name('user.activityLogs');
+    Route::get('/logout', [GoogleController::class, 'logout'])->name('logout');
 });
 
 Route::middleware(['auth:admin'])->group(function () {

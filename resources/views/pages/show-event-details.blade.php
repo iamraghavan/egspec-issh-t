@@ -1,138 +1,209 @@
-@extends('layout.app')
-@section('content')
 
-<x-page-banner
-    title="Events"
-    :breadcrumbs="[
-        ['label' => 'Home', 'url' => route('index')],
-        ['label' => 'Events', 'url' => '#'],
-        // ['label' => ]
-    ]"
-/>
-<div class="event-details-area ptb-100" id='vanakam_da_mapla'>
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-8 col-md-12">
-                <div class="event-details">
-                    <div class="event-details-header">
-                        <a href="{{ route('events.index') }}" class="back-all-event"><i class="bx bx-chevron-left"></i> Back To All Events</a>
-                        <h3>{{ $eventDetails->title }}</h3>
-                        <ul class="event-info-meta">
-                            <li><i class="bx bx-calendar"></i> {{ \Carbon\Carbon::parse($eventDetails->date)->format('d F, Y') }}</li>
-                            <li><i class="bx bx-time"></i> {{ \Carbon\Carbon::parse($eventDetails->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($eventDetails->end_time)->format('H:i') }}</li>
-                        </ul>
-                    </div>
-
-                    <div class="event-details-image">
-                        <img src="{{ asset('assets/images/events.webp') }}" alt="{{ $eventDetails->title }}">
-                    </div>
-
-                    <div class="event-details-desc">
-                        {{-- <p>{{ $eventDetails->description }}</p> --}}
-                    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="{{ Auth::user()->profile_url }}" rel="icon" />
+<title>{{ config('app.name') }} - {{ $registration->name }} - {{ $registration->event_registration_id }}</title>
 
 
+<!-- Web Fonts
+======================= -->
+<link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Poppins:100,200,300,400,500,600,700,800,900' type='text/css'>
 
-                    <div class="event-info-links">
-                        <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text={{ urlencode($eventDetails->title) }}&dates={{ \Carbon\Carbon::parse($eventDetails->date . ' ' . $eventDetails->start_time)->format('Ymd\THis\Z') }}/{{ \Carbon\Carbon::parse($eventDetails->date . ' ' . $eventDetails->end_time)->format('Ymd\THis\Z') }}&details={{ urlencode($eventDetails->description) }}&location={{ urlencode($eventDetails->venue) }}" target="_blank">+ Google Calendar</a>
-                        {{-- <a href="#">+ iCal Export</a> --}}
-                    </div>
-
-
-                    <div class="post-navigation">
-                        {{-- <div class="navigation-links">
-                            @if($previousEvent)
-                                <div class="nav-previous">
-                                    <a href="{{ route('events.show', ['id' => $previousEvent->id, 'slug' => str_slug($previousEvent->title)]) }}"><i class="bx bx-chevron-left"></i> Prev Events</a>
-                                </div>
-                            @endif
-
-                            @if($nextEvent)
-                                <div class="nav-next">
-                                    <a href="{{ route('events.show', ['id' => $nextEvent->id, 'slug' => str_slug($nextEvent->title)]) }}">Next Events <i class="bx bx-chevron-right"></i></a>
-                                </div>
-                            @endif
-                        </div> --}}
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-12">
-                <aside class="widget-area" id="secondary">
-                    <div class="widget widget_event_details">
-                        <h3 class="widget-title">Details</h3>
-
-                        <ul>
-                            <li><span>Department:</span> {{ $eventDetails->department }}</li>
-                            <li><span>Mode:</span> {{ $eventDetails->mode }}</li>
-                            <li><span>Location:</span> {{ $eventDetails->location }}</li>
-                            <li><span>Venue:</span> {{ $eventDetails->venue }}</li>
-                            @if($eventDetails->price_type !== 'Idle')
-    <li><span>Price Type:</span> {{ $eventDetails->price_type }}</li>
-@else
-    <li><span>Price Type:</span> Paid</li>
-@endif
-
-                            <li><span>Amount:</span> {{ $eventDetails->amount }}</li>
-                            <li><span>Created At:</span> {{ \Carbon\Carbon::parse($eventDetails->created_at)->format('d F, Y H:i') }}</li>
-                            <li><span>Updated At:</span> {{ \Carbon\Carbon::parse($eventDetails->updated_at)->format('d F, Y H:i') }}</li>
-                        </ul>
-                    </div>
-
-                    <div class="widget widget_event_details">
-                        <h3 class="widget-title">Organizer</h3>
-
-                        <ul>
-                            <li><span>Conducted By:</span> {{ $eventDetails->conducted_by }}</li>
-                        </ul>
-                    </div>
-
-                    <div class="widget widget_event_details">
-                        <h3 class="widget-title">Venue</h3>
-
-                        <ul>
-                            <li><a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($eventDetails->venue) }}" target="_blank">{{ $eventDetails->venue }}</a></li>
-                            <li><a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($eventDetails->venue) }}" target="_blank">+ Google Map</a></li>
-                        </ul>
-                    </div>
-
-                    <div class="widget widget_event_details">
-                        <h3 class="widget-title">Register Here</h3>
-
-                    <!-- Button to Open Google Sign-In -->
-                    <div class="event-details">
-                        <div class="event-info-links">
-                            <form action="{{ route('register.page', ['id' => $eventDetails->id]) }}" method="GET">
-                                @csrf
-                                <input type="hidden" name="event_id" value="{{ $eventDetails->id }}">
-                                <button type="submit" class="default-btn" id="book-btn">Register</button>
-                            </form>
-                        </div>
-                    </div>
-
-
-<!-- Include Google API script -->
-
-
-                    </div>
-
-                     <!-- Google One Tap Container -->
-    <div id="g_id_onetap_container"></div>
-
-
-                </aside>
-            </div>
-        </div>
+<!-- Stylesheet
+======================= -->
+<link rel="stylesheet" href="{{ asset("/assets/css/bootstrap.min.css") }}">
+<link rel="stylesheet" type="text/css" href="https://harnishdesign.net/demo/html/koice/vendor/font-awesome/css/all.min.css"/>
+<link rel="stylesheet" type="text/css" href="{{asset('/assets/pdf/style.css')}}"/>
+<link rel="stylesheet" href="{{ asset("/assets/css/boxicons.min.css") }}">
+</head>
+<body>
+<!-- Container -->
+<div class="container-fluid invoice-container">
+  <!-- Header -->
+  <header>
+    <div class="row align-items-center gy-3">
+      <div class="col-sm-7 text-center text-sm-start"> <img id="logo" src="{{ asset('assets/egspec-r1.png') }}" title="EVENT" alt="EVENT" /> </div>
+      <div class="col-sm-5 text-center text-sm-end">
+        <h4 class="mb-0">Registration</h4>
+        <p class="mb-0">{{$registration->event_registration_id}}</p>
+      </div>
     </div>
+    <hr>
+  </header>
+  <!-- Main Content -->
+  <main>
+    <p class="text-1 text-center text-muted">
+        This e-ticket grants entry to the event or session. Present it at the venue or online platform, and follow all event guidelines for a smooth experience.
+    </p>
+
+    <!-- Passenger Details -->
+    <h4 class="text-4">Registration Details</h4>
+    <div class="table-responsive">
+        <table class="table table-bordered text-1 table-sm table-striped">
+            <thead>
+                <tr>
+                    <td colspan="4">
+                        <span class="fw-600">Reference ID</span>: {{ $registration->invoice_id ?? 'N/A' }}
+                        <span class="float-end">
+                            <span class="fw-600">Date of Booking</span>: {{ $registration->created_at ? $registration->created_at->format('d M, Y') : 'N/A' }} at {{ $registration->created_at ? $registration->created_at->format('h:i A') : 'N/A' }}
+                        </span>
+                    </td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="fw-600 col-2">Event ID</td>
+                    <td class="col-4">{{ $registration->event_registration_id ?? 'N/A' }}</td>
+                    <td class="fw-600 col-2">Name</td>
+                    <td class="col-4">{{ $registration->name ?? 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <td class="fw-600">Email</td>
+                    <td>{{ $registration->email ?? 'N/A' }}</td>
+                    <td class="fw-600">Phone</td>
+                    <td>{{ $registration->phone ?? 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <td class="fw-600">Address</td>
+                    <td colspan="3">
+                        {{ $registration->address ?? 'N/A' }},
+                        {{ $registration->city ?? 'N/A' }},
+                        {{ $registration->state ?? 'N/A' }} -
+                        {{ $registration->pincode ?? 'N/A' }},
+                        {{ $registration->country ?? 'N/A' }}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fw-600">Amount</td>
+                    <td>{{ $registration->amount ?? 'N/A' }}</td>
+                    <td class="fw-600">Total Value</td>
+                    <td>{{ $registration->summary_amount ?? 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <td class="fw-600">Payment ID</td>
+                    <td>{{ $registration->payment_id ?? 'N/A' }}</td>
+                    <td class="fw-600">Order ID</td>
+                    <td>{{ $registration->order_id ?? 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <td class="fw-600">Registration Type</td>
+                    <td>{{ ucfirst($registration->registration_type ?? 'N/A') }}</td>
+                    @if(!empty($registration->members))
+                    <tr>
+                        <td class="fw-600">Members Details</td>
+                        <td>
+                            @foreach($registration->members as $member)
+                                {{ $member }}<br>
+                            @endforeach
+                        </td>
+                    </tr>
+                @endif
+
+                </tr>
+                @if($registration->registration_type === 'group' && !empty($registration->members))
+                    <tr>
+                        <td class="fw-600">Members</td>
+                        <td colspan="3">
+                            @forelse($registration->members as $member)
+                                {{ $member }}<br>
+                            @empty
+                                N/A
+                            @endforelse
+                        </td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+    </div>
+
+
+    <!-- Passenger Details -->
+    <h4 class="text-4 mt-2">Session / Events Details</h4>
+    <div class="table-responsive">
+      <table class="table table-bordered text-1 table-sm">
+        <thead>
+          <tr class="bg-light">
+            <th>S. NO.</th>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+
+
+          </tr>
+        </thead>
+        <tbody>
+          @foreach($sessionEvents as $index => $session)
+            <tr>
+              <td>{{ $index + 1 }}</td>
+              <td>{{ $session->title ?? 'N/A' }}</td>
+              <td>{{ $session->date ? $session->date->format('d M, Y') : 'N/A' }}</td>
+          <td>{{ $session->start_time ? $session->start_time->format('h:i A') : 'N/A' }}</td>
+          <td>{{ $session->end_time ? $session->end_time->format('h:i A') : 'N/A' }}</td>
+
+
+            </tr>
+
+          @endforeach
+        </tbody>
+      </table>
+
+      <table class="table table-bordered text-1 table-sm">
+        <tbody>
+            <tr style="text-align: center !important;">
+                <td colspan="3"><span class="fw-600"></span> {{ $session->description ?? 'N/A' }}</td>
+              </tr>
+        </tbody>
+      </table>
+
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered text-1 table-sm">
+        <tbody>
+          <tr style="text-align: center !important;">
+            <td class="col-4"><span class="fw-600">{{ $session->location ?? 'N/A' }}</td>
+            <td class="col-4"><span class="fw-600">{{ $session->venue ?? 'N/A' }}</td>
+            <td class="col-4"><span class="fw-600">{{ $session->conducted_by ?? 'N/A' }}</td>
+          </tr>
+          <tr style="text-align: center !important;">
+            <td colspan="3"><span class="fw-600">Address:</span> {{ config('app.company_address') }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+
+    <!-- Important Info -->
+    <h4 class="text-4 mt-2">Important Instruction &amp; Terms &amp; Conditions</h4>
+    <ul class="text-1">
+        <li>Participants must adhere to the event's code of conduct and follow all health and safety guidelines.</li>
+        <li>No cancellations or refunds will be processed once registration is completed.</li>
+        <li>By attending the event, participants consent to photography and the use of media.</li>
+        <li>For any queries, please contact Dr. S. Palani Murugan at <a href="mailto:palanimurugan@egspec.org">palanimurugan@egspec.org</a>.</li>
+    </ul>
+
+  </main>
+  <!-- Footer -->
+  <footer class="text-center">
+    <hr>
+    <p style="font-size: smaller;">
+        Copyright © 2006 - 2024 All Rights Reserved by EGS Pillay Group of Institutions. Developed By <a href="https://jsraghavan.me">Raghavan Jeeva</a>.
+    </p>
+    <div class="btn-group btn-group-sm d-print-none"> <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
+        <i class='bx bx-printer'></i> Print</a> </div>
+
+        <div class="btn-group btn-group-sm d-print-none"> <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
+            <i class='bx bxs-file-pdf' ></i> Download PDF</a> </div>
+
+
+  </footer>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-
-
-
-@endsection
-
-
-
+<!-- Back to My Account Link -->
+<p class="text-center d-print-none"><a href="{{ route('user.dashboard', ['google_uid' => Auth::user()->google_id]) }}">&laquo; Back to My Account</a></p>
+</body>
+</html>

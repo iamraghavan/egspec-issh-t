@@ -1,61 +1,113 @@
-<div id="g_id_onload"
-     data-client_id="379483365701-5uvdh4b1g88mdsu16ng3u29j1ru7i6es.apps.googleusercontent.com"
-     data-login_uri="http://localhost/plevents/public/auth/google/callback"
-     data-auto_prompt="true">
-</div>
+@if (!Auth::check())
+    <!-- Google One Tap Prompt -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://cdn.jsdelivr.net/npm/jwt-decode@2.2.0/build/jwt-decode.min.js"></script>
+    <div id="g_id_onload"
+         data-client_id="{{ env('GOOGLE_CLIENT_ID') }}"
+         data-callback="handleOneTapLogin"
+         data-auto_prompt="true"
+         data-auto_select="false"
+         data-context="use"
+         data-login_uri="{{ route('google.one-tap-callback') }}"
+         data-cancel_on_tap_outside="true">
+    </div>
 
-<script>
-    // Initialize Google Sign-In
-    function initializeGoogleSignIn() {
-        google.accounts.id.initialize({
-            client_id: '379483365701-5uvdh4b1g88mdsu16ng3u29j1ru7i6es.apps.googleusercontent.com',
-            callback: handleCredentialResponse,
-            auto_select: true
-        });
-        google.accounts.id.prompt(); // Show the One Tap prompt
-    }
+    <script>
+        window.onload = initializeAuthentication;
 
-    function handleCredentialResponse(response) {
-        const credential = response.credential;
-        const payload = JSON.parse(atob(credential.split('.')[1]));
+        // Initializes authentication process
+        function initializeAuthentication() {
+            if (window.FedCM) {
+                initializeFedCM();
+            } else {
+                initializeGoogleOneTap();
+            }
+        }
 
-        // Extract user details
-        const googleUid = payload.sub;
-        const firstName = payload.given_name;
-        const lastName = payload.family_name;
-        const email = payload.email;
-        const profilePicture = payload.picture;
+        // Initializes FedCM and falls back to Google One Tap if failed
+        function initializeFedCM() {
+            FedCM.initialize({
+                autoPrompt: true,
+                context: 'use',
+                loginUri: '{{ route('google.one-tap-callback') }}'
+            }).catch(error => {
+                console.warn('FedCM initialization error:', error);
+                initializeGoogleOneTap(); // Fallback to Google One Tap
+            });
+        }
 
-        // Send the extracted details to the backend
-        fetch('{{ route('google.callback') }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                google_uid: googleUid,
-                first_name: firstName,
-                last_name: lastName,
-                email: email,
-                profile_picture: profilePicture
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('User logged in successfully:', data);
-            // Redirect to a specific route or handle the response as needed
-        })
-        .catch(error => {
-            console.error('Error logging in:', error);
-        });
-    }
+        // Initializes Google One Tap
+        function initializeGoogleOneTap() {
+            google.accounts.id.initialize({
+                client_id: "{{ env('GOOGLE_CLIENT_ID') }}",
+                callback: handleOneTapLogin
+            });
+            google.accounts.id.prompt(); // Prompt the Google One Tap dialog
+        }
 
-    // Defer the initialization of Google Sign-In until the script is fully loaded
-    window.onload = function() {
-        initializeGoogleSignIn();
-    };
-</script>
+        // Handles the One Tap login response
+        function handleOneTapLogin(response) {
+            if (response.error) {
+                handleError(response.error);
+                return;
+            }
+
+            const token = response.credential;
+            submitToken(token);
+        }
+
+        // Submits token to the server and handles the response
+        function submitToken(token) {
+            fetch('{{ route('google.one-tap-callback') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ credential: token })
+            }).then(response => response.json())
+              .then(data => handleLoginResponse(data))
+              .catch(handleFetchError);
+        }
+
+        // Processes the server's login response
+        function handleLoginResponse(data) {
+            if (data.success) {
+                showModal('Login successful', 'Review All Events and Complete Your Registration', () => {
+                    window.location.reload(); // Refresh the page
+                });
+            } else {
+                showModal('Login failed', 'There was a problem logging you in. Please try again.');
+            }
+        }
+
+        // Handles Google One Tap errors
+        function handleError(error) {
+            console.error('Google One Tap error:', error);
+            showModal('Login failed', 'There was a problem logging you in. Please try again.');
+        }
+
+        // Handles fetch errors
+        function handleFetchError(error) {
+            console.error('Error during fetch:', error);
+            showModal('Login failed', 'There was a problem logging you in. Please try again.');
+        }
+
+        // Displays modal with a message
+        function showModal(title, message, callback = null) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+
+            const myModal = new HystModal({
+                linkAttributeName: "data-hystmodal"
+            });
+
+            myModal.open('#myModal');
+
+            // Execute callback function if provided
+            if (callback) {
+                setTimeout(callback, 2000); // Call the callback after 2 seconds
+            }
+        }
+    </script>
+@endif

@@ -6,27 +6,36 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Log;
+use Google_Client;
 
 class GoogleController extends Controller
 {
     public function checkAuth(Request $request)
     {
+        $this->validateEventId($request);
+        session(['event_id' => $request->event_id]);
+
+        return Auth::check() ? $this->redirectToRegistration() : $this->redirectToGoogleWithIntendedUrl();
+    }
+
+    private function validateEventId(Request $request)
+    {
         $request->validate([
             'event_id' => 'required|integer',
         ]);
+    }
 
-        $eventID = $request->event_id;
+    private function redirectToRegistration()
+    {
+        $eventID = session('event_id');
+        return redirect()->route('register.check', ['id' => $eventID]);
+    }
 
-        // Store event ID and intended URL in the session
-        session(['event_id' => $eventID]);
-
-        if (Auth::check()) {
-            return redirect()->route('register.check', ['id' => $eventID]);
-        } else {
-            // Store the intended URL in the session
-            session(['url.intended' => url()->previous()]);
-            return $this->redirectToGoogle();
-        }
+    private function redirectToGoogleWithIntendedUrl()
+    {
+        session(['url.intended' => url()->previous()]);
+        return $this->redirectToGoogle();
     }
 
     public function redirectToGoogle()
@@ -38,75 +47,157 @@ class GoogleController extends Controller
     {
         try {
             $user = Socialite::driver('google')->user();
+            $authUser = $this->findOrCreateUser($user);
+            Auth::login($authUser);
+            session(['google_uid' => $authUser->google_id]);
 
-            $googleUid = $user->id;
-            $email = $user->email;
-            $name = $user->name;
-            $profilePicture = $user->avatar;
-
-            $existingUser = User::where('email', $email)->first();
-
-            if ($existingUser) {
-                $existingUser->update([
-                    'name' => $name,
-                    'profile_url' => $profilePicture,
-                    'google_id' => $googleUid,
-                ]);
-                $user = $existingUser;
-            } else {
-                $user = User::create([
-                    'name' => $name,
-                    'email' => $email,
-                    'profile_url' => $profilePicture,
-                    'password' => bcrypt($googleUid),
-                    'google_id' => $googleUid,
-                    'is_admin' => 0,
-                    'roles' => 'user',
-                ]);
-            }
-
-            Auth::login($user);
-
-            session(['google_uid' => $googleUid]);
-
-            // Retrieve event ID from the session
-            $eventID = session('event_id');
-
-            // Clear the event ID from the session
-            session()->forget('event_id');
-
-            // Redirect to the event registration page if event ID is found
-            if ($eventID) {
-                return redirect()->route('register.page', ['id' => $eventID]);
-            }
-
-            // Redirect to intended URL if available, else to home
-            $intendedUrl = session('url.intended', '/');
-            session()->forget('url.intended');
-            return redirect($intendedUrl);
-
+            return $this->redirectAfterLogin();
         } catch (\Exception $e) {
-            return redirect()->route('index')->with('error', 'Failed to authenticate with Google.');
+            return $this->handleAuthenticationError($e);
         }
+    }
+
+    private function findOrCreateUser($googleUser)
+    {
+        $existingUser = User::where('email', $googleUser->email)->first();
+        return $existingUser ? $this->updateUser($existingUser, $googleUser) : $this->createUser($googleUser);
+    }
+
+    private function updateUser($existingUser, $googleUser)
+    {
+        $existingUser->update([
+            'name' => $googleUser->name,
+            'profile_url' => $googleUser->avatar,
+            'google_id' => $googleUser->id,
+        ]);
+        return $existingUser;
+    }
+
+    private function createUser($googleUser)
+    {
+        return User::create([
+            'name' => $googleUser->name,
+            'email' => $googleUser->email,
+            'profile_url' => $googleUser->avatar,
+            'password' => bcrypt($googleUser->id),
+            'google_id' => $googleUser->id,
+            'is_admin' => 0,
+            'roles' => 'user',
+        ]);
+    }
+
+    private function redirectAfterLogin()
+    {
+        $eventID = session('event_id');
+        session()->forget('event_id');
+
+        if ($eventID) {
+            return redirect()->route('register.page', ['id' => $eventID]);
+        }
+
+        $intendedUrl = session('url.intended', '/');
+        session()->forget('url.intended');
+        return redirect($intendedUrl);
+    }
+
+    private function handleAuthenticationError(\Exception $e)
+    {
+        Log::error('Google Authentication Failed: ' . $e->getMessage());
+        return redirect()->route('index')->with('error', 'Failed to authenticate with Google. Please try again later.');
+    }
+
+    public function handleGoogleOneTapCallback(Request $request)
+    {
+        try {
+            $payload = $this->verifyGoogleOneTap($request);
+
+            if ($payload) {
+                $user = $this->findOrCreateUserFromPayload($payload);
+                Auth::login($user);
+                session(['google_uid' => $user->google_id]);
+
+                return $this->handleSuccessfulLoginResponse($user);
+            } else {
+                return response()->json(['success' => false, 'message' => 'Invalid ID token.'], 400);
+            }
+        } catch (\Exception $e) {
+            return $this->handleOneTapError($e);
+        }
+    }
+
+    private function verifyGoogleOneTap(Request $request)
+    {
+        $credential = $request->input('credential');
+
+        if (!$credential) {
+            throw new \Exception('No credential provided.');
+        }
+
+        $client = new Google_Client(['client_id' => env('GOOGLE_CLIENT_ID')]);
+        return $client->verifyIdToken($credential);
+    }
+
+    private function findOrCreateUserFromPayload($payload)
+    {
+        $googleUid = $payload['sub'];
+        $email = $payload['email'];
+        $name = $payload['name'];
+        $profilePicture = $payload['picture'];
+
+        $existingUser = User::where('email', $email)->first();
+        return $existingUser ? $this->updateUser($existingUser, (object)[
+            'id' => $googleUid,
+            'name' => $name,
+            'email' => $email,
+            'avatar' => $profilePicture
+        ]) : $this->createUser((object)[
+            'id' => $googleUid,
+            'name' => $name,
+            'email' => $email,
+            'avatar' => $profilePicture
+        ]);
+    }
+
+    private function handleSuccessfulLoginResponse($user)
+    {
+        $eventID = session('event_id');
+        session()->forget('event_id');
+
+        if ($eventID) {
+            return redirect()->route('register.page', ['id' => $eventID]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'google_uid' => $user->google_id,
+            'redirect' => route('user.dashboard', $user->google_id),
+        ]);
+    }
+
+    private function handleOneTapError(\Exception $e)
+    {
+        Log::error('Google One Tap Error: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => 'Login failed. Please try again later.'], 500);
     }
 
     public function logout(Request $request)
     {
-        // Check if the user is authenticated
         if (Auth::check()) {
-            // Clear the session
-            $request->session()->flush();
-
-            // Clear all cookies
-            $cookieNames = ['laravel_session', 'XSRF-TOKEN'];
-            foreach ($cookieNames as $cookieName) {
-                $request->cookies->remove($cookieName);
-            }
-
-            // Log out the user
+            $this->clearSessionAndCookies($request);
             Auth::logout();
         }
 
-        return redirect('/'); // Redirect to the homepage or a desired page if not authenticated
+        return redirect('/');
+    }
+
+    private function clearSessionAndCookies(Request $request)
+    {
+        $request->session()->flush();
+
+        $cookieNames = ['laravel_session', 'XSRF-TOKEN'];
+        foreach ($cookieNames as $cookieName) {
+            $cookieJar = app('cookie')->getQueuedCookies();
+            unset($cookieJar[$cookieName]);
+        }
     }
 }

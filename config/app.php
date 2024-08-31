@@ -124,5 +124,14 @@ return [
     ],
 
 
+    // config/app.php
+
+
+
+
+
+    'company_name' => 'E.G.S Pillay Engineering College',
+    'company_address' => 'Old Nagore Road, Thethi Village, Nagapattinam - 611002, Tamil Nadu',
+
 
 ];

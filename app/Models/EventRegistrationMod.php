@@ -22,9 +22,13 @@ class EventRegistrationMod extends Model
         'city',
         'pincode',
         'amount',
+        'summary_amount',
         'payment_id',
         'order_id',
         'invoice_id',
+        'registration_type',
+        'members'
+
     ];
 
     // Define relationships
@@ -36,6 +40,11 @@ class EventRegistrationMod extends Model
     {
         return $this->belongsTo(Session::class, 'event_id');
     }
+
+
+    protected $casts = [
+        'members' => 'array', // Ensure Laravel casts JSON to an array
+    ];
 
     /**
      * Get the user associated with the registration.

@@ -7,66 +7,138 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Exception;
+
+use Cloudinary\Cloudinary;
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
+
+use App\Models\Speaker;
 
 class SessionController extends Controller
 {
+    public function __construct()
+    {
+        // Middleware should be applied in routes, not directly in controllers.
+    }
 
+    // Token validation logic
+    private function validateToken(Request $request, $token)
+    {
+        $sessionToken = $request->session()->get('admin_auth_token');
+
+        if ($sessionToken !== $token) {
+            return redirect()->route('login')->withErrors(['token' => 'Invalid session token.']);
+        }
+
+        return null;
+    }
+
+    // Show all sessions
     public function index(Request $request, $token)
     {
-        $decodedToken = base64_decode($token);
-
-        $sessionToken = $request->session()->get('admin_auth_token');
-
-        $token = $request->session()->get('admin_auth_token');
-
-        if ($sessionToken !== $token) {
-
-            return redirect()->route('login')->withErrors(['token' => 'Invalid session token.']);
+        if ($errorRedirect = $this->validateToken($request, $token)) {
+            return $errorRedirect;
         }
 
-        if (Auth::guard('admin')->check()) {
+        $user = Auth::guard('admin')->user();
+        $sessions = Session::where('is_hide', 'show')->get();
 
-            $sessions = Session::all();
-            return view('admin.pages.sessions.index', compact('sessions', 'token'));
-        }
-
-
-        return redirect()->route('login');
+        return view('admin.pages.sessions.index', compact('user', 'sessions', 'token'));
     }
 
-
+    // Show session creation form
     public function create(Request $request, $token)
     {
-        $decodedToken = base64_decode($token);
-
-        $sessionToken = $request->session()->get('admin_auth_token');
-
-        $token = $request->session()->get('admin_auth_token');
-
-        if ($sessionToken !== $token) {
-
-            return redirect()->route('login')->withErrors(['token' => 'Invalid session token.']);
+        if ($errorRedirect = $this->validateToken($request, $token)) {
+            return $errorRedirect;
         }
 
-        if (Auth::guard('admin')->check()) {
-            $session = new Session();
-            return view('admin.pages.sessions.create', compact('session', 'token'));
-        }
+        $user = Auth::guard('admin')->user();
+        $session = new Session();
 
-        return redirect()->route('login');
+        return view('admin.pages.sessions.create', compact('user', 'session', 'token'));
     }
 
+    // Store a new session
     public function store(Request $request)
     {
-        // Validate the request data
-        $validatedData = $request->validate([
+        $this->validateSessionData($request);
+
+        $sessionData = $this->formatSessionData($request);
+
+        Session::create($sessionData);
+
+        return redirect()->route('sessions.index', ['token' => $request->session()->get('admin_auth_token')])
+            ->with('success', 'Session created successfully.');
+    }
+
+    // Show session details
+    public function show(Session $session, Request $request, $token)
+    {
+        if ($errorRedirect = $this->validateToken($request, $token)) {
+            return $errorRedirect;
+        }
+
+        $user = Auth::guard('admin')->user();
+        return view('admin.pages.sessions.show', compact('user', 'session', 'token'));
+    }
+
+    // Show edit form
+    public function edit(Session $session, Request $request, $token)
+    {
+        if ($errorRedirect = $this->validateToken($request, $token)) {
+            return $errorRedirect;
+        }
+
+        $user = Auth::guard('admin')->user();
+        return view('admin.pages.sessions.edit', compact('user', 'session', 'token'));
+    }
+
+    // Update a session
+    public function update(Request $request, $session_id)
+    {
+        Log::info('Update Request Data:', $request->all());
+
+        $this->validateSessionData($request);
+
+        $session = Session::find($session_id);
+
+        if (!$session) {
+            return redirect()->route('sessions.index')
+                ->withErrors(['session' => 'Session not found.']);
+        }
+
+        $session->update($this->formatSessionData($request));
+
+        return redirect()->route('sessions.index', ['token' => $request->session()->get('admin_auth_token')])
+            ->with('success', 'Session updated successfully.');
+    }
+
+    // Delete a session
+    public function destroy(Session $session)
+    {
+        // Update the 'is_hide' field instead of deleting the record
+        $session->update(['is_hide' => 'block']);
+
+        return redirect()->route('sessions.index', ['token' => request()->session()->get('admin_auth_token')])
+            ->with('success', 'Session marked as hidden successfully.');
+    }
+
+
+
+
+    // Validate session data
+    private function validateSessionData(Request $request)
+    {
+        $request->validate([
             'title' => 'required|string|max:255',
             'slug' => 'required|string|max:255',
             'description' => 'nullable|string',
             'conducted_by' => 'required|string|max:255',
             'date' => 'required|date',
-            'start_time' => 'required|string',
-            'end_time' => 'required|string',
+            'start_time' => 'required|date_format:h:i A',
+            'end_time' => 'required|date_format:h:i A|after:start_time',
             'location' => 'nullable|string|max:255',
             'venue' => 'nullable|string|max:255',
             'department' => 'required|string|max:255',
@@ -75,147 +147,36 @@ class SessionController extends Controller
             'price_type' => 'required|string',
             'amount' => 'nullable|numeric',
         ]);
+    }
 
-        // Convert the start_time and end_time to the correct format
-        $startTime = Carbon::createFromFormat('h:i A', $request->input('start_time'))->format('H:i:s');
-        $endTime = Carbon::createFromFormat('h:i A', $request->input('end_time'))->format('H:i:s');
-
-        // Store the session
-        Session::create([
-            'title' => $validatedData['title'],
-            'slug' => $validatedData['slug'],
-            'description' => $validatedData['description'],
-            'conducted_by' => $validatedData['conducted_by'],
-            'date' => $validatedData['date'],
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'location' => $validatedData['location'],
-            'venue' => $validatedData['venue'],
-            'department' => $validatedData['department'],
-            'mode' => $validatedData['mode'],
-            'meeting_url' => $validatedData['meeting_url'],
-            'price_type' => $validatedData['price_type'],
-            'amount' => $validatedData['amount'] ?? 0, // Set amount to 0 if not provided
+    // Format session data
+    private function formatSessionData(Request $request)
+    {
+        return array_merge($request->all(), [
+            'start_time' => Carbon::createFromFormat('h:i A', $request->input('start_time'))->format('H:i:s'),
+            'end_time' => Carbon::createFromFormat('h:i A', $request->input('end_time'))->format('H:i:s'),
+            'amount' => $request->input('amount', 0),
         ]);
-
-        // Redirect to a specific page or return a response
-        return redirect()->route('sessions.index', ['token' => $request->session()->get('admin_auth_token')])
-            ->with('success', 'Session created successfully.');
     }
 
-    public function show(Session $session, Request $request, $token)
+    public function speaker_index(Request $request, $token)
     {
-
-        $decodedToken = base64_decode($token);
-
-        $sessionToken = $request->session()->get('admin_auth_token');
-
-        $token = $request->session()->get('admin_auth_token');
-
-        if ($sessionToken !== $token) {
-
-            return redirect()->route('login')->withErrors(['token' => 'Invalid session token.']);
+        if ($errorRedirect = $this->validateToken($request, $token)) {
+            return $errorRedirect;
         }
 
-        if (Auth::guard('admin')->check()) {
-
-            return view('admin.pages.sessions.show', compact('session', 'token'));
-        }
-
-        return redirect()->route('login');
+        $user = Auth::guard('admin')->user();
+        return view('admin.pages.speaker.index', compact('user', 'token'));
     }
 
-    public function edit(Session $session, Request $request, $token)
+    public function speaker_create(Request $request, $token)
     {
-        $decodedToken = base64_decode($token);
 
-        $sessionToken = $request->session()->get('admin_auth_token');
-
-        $token = $request->session()->get('admin_auth_token');
-
-        if ($sessionToken !== $token) {
-
-            return redirect()->route('login')->withErrors(['token' => 'Invalid session token.']);
+        if ($errorRedirect = $this->validateToken($request, $token)) {
+            return $errorRedirect;
         }
 
-        if (Auth::guard('admin')->check()) {
-            return view('admin.pages.sessions.edit', compact('session', 'token'));
-        }
-
-        return redirect()->route('login');
-    }
-
-    public function update(Request $request, $session_id)
-    {
-        // Log the incoming data for debugging
-        Log::info('Update Request Data:', $request->all());
-
-        // Validate the request data
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'conducted_by' => 'required|string',
-            'start_time' => 'required|date_format:h:i A', // 12-hour format with AM/PM
-            'end_time' => 'required|date_format:h:i A|after:start_time', // 12-hour format with AM/PM
-            'date' => 'required|date',
-            'location' => 'required|string',
-            'venue' => 'required|string',
-            'department' => 'required|string',
-            'mode' => 'required|string',
-            'meeting_url' => 'nullable|url',
-            'price_type' => 'required|string',
-            'amount' => 'nullable|numeric',
-        ]);
-
-        // Convert start_time and end_time to 24-hour format before saving
-        $request->merge([
-            'start_time' => \Carbon\Carbon::createFromFormat('h:i A', $request->input('start_time'))->format('H:i:s'),
-            'end_time' => \Carbon\Carbon::createFromFormat('h:i A', $request->input('end_time'))->format('H:i:s'),
-        ]);
-
-        // Find the session by ID
-        $session = Session::find($session_id);
-
-        // Check if the session was found
-        if (!$session) {
-            return redirect()->route('sessions.index')
-                ->withErrors(['session' => 'Session not found.']);
-        }
-
-        // Update the session data
-        $session->update($request->all());
-
-        // Redirect back with success message
-        return redirect()->route('sessions.index', ['token' => $request->session()->get('admin_auth_token')])
-            ->with('success', 'Session updated successfully.');
-    }
-
-
-    public function destroy(Session $session)
-    {
-        $session->delete();
-        return redirect()->route('sessions.index', ['token' => request()->session()->get('admin_auth_token')])
-            ->with('success', 'Session deleted successfully.');
-    }
-
-    private function validateRequest(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required',
-            'conducted_by' => 'required|string|max:255',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'date' => 'required|date',
-            'location' => 'nullable|string|max:255',
-            'venue' => 'nullable|string|max:255',
-            'department' => 'nullable|string|max:255',
-            'mode' => 'required|in:Online,Offline,Hybrid',
-            'meeting_url' => 'nullable|url',
-            'price_type' => 'required|in:Free,Idle',
-            'amount' => 'nullable|numeric|min:0',
-        ]);
+        $user = Auth::guard('admin')->user();
+        return view('admin.pages.speaker.create', compact('user', 'token'));
     }
 }
-
-// update successfully

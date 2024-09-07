@@ -11,8 +11,9 @@ class EventSchedule extends Component
 
     public function __construct()
     {
-        // Fetch sessions grouped by department
-        $this->departments = Session::orderBy('date', 'asc')
+        // Fetch sessions where is_hide is 'show' and group them by department
+        $this->departments = Session::where('is_hide', 'show')
+            ->orderBy('date', 'asc')
             ->get()
             ->groupBy('department');
     }

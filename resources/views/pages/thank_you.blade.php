@@ -5,7 +5,11 @@
 <meta charset="utf-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="{{ Auth::user()->profile_url }}" rel="icon" />
+@if(Auth::check() && Auth::user()->profile_url)
+    <link href="{{ Auth::user()->profile_url }}" rel="icon" />
+@else
+    <link href="https://coe.egspec.org/images/egspec_logo.png" rel="icon" />
+@endif
 <title>{{ config('app.name') }} - {{ $registration->name }} - {{ $registration->event_registration_id }}</title>
 
 
@@ -15,10 +19,10 @@
 
 <!-- Stylesheet
 ======================= -->
-<link rel="stylesheet" href="{{ asset("/assets/css/bootstrap.min.css") }}">
-<link rel="stylesheet" type="text/css" href="https://harnishdesign.net/demo/html/koice/vendor/font-awesome/css/all.min.css"/>
-<link rel="stylesheet" type="text/css" href="{{asset('/assets/pdf/style.css')}}"/>
-<link rel="stylesheet" href="{{ asset("/assets/css/boxicons.min.css") }}">
+<link rel="stylesheet" href="{{ url('assets/css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url('assets/pdf/style.css') }}">
+<link rel="stylesheet" href="{{ url('assets/css/boxicons.min.css') }}">
+
 </head>
 <body>
 <!-- Container -->
@@ -89,33 +93,33 @@
                     <td class="fw-600">Order ID</td>
                     <td>{{ $registration->order_id ?? 'N/A' }}</td>
                 </tr>
-                <tr>
-                    <td class="fw-600">Registration Type</td>
-                    <td>{{ ucfirst($registration->registration_type ?? 'N/A') }}</td>
-                    @if(!empty($registration->members))
-                    <tr>
-                        <td class="fw-600">Members Details</td>
-                        <td>
-                            @foreach($registration->members as $member)
-                                {{ $member }}<br>
-                            @endforeach
-                        </td>
-                    </tr>
-                @endif
 
+                @php
+                // Decode JSON string to array if necessary
+                if (is_string($registration->members)) {
+                    $membersArray = json_decode($registration->members, true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        $membersArray = []; // Fallback to empty array if JSON is invalid
+                    }
+                } else {
+                    $membersArray = $registration->members;
+                }
+            @endphp
+
+            @if($registration->registration_type === 'group' && !empty($membersArray) && is_array($membersArray))
+                <tr>
+                    <td class="fw-600">Members</td>
+                    <td colspan="3">
+                        @forelse($membersArray as $member)
+                            {{ $member }}<br>
+                        @empty
+                            N/A
+                        @endforelse
+                    </td>
                 </tr>
-                @if($registration->registration_type === 'group' && !empty($registration->members))
-                    <tr>
-                        <td class="fw-600">Members</td>
-                        <td colspan="3">
-                            @forelse($registration->members as $member)
-                                {{ $member }}<br>
-                            @empty
-                                N/A
-                            @endforelse
-                        </td>
-                    </tr>
-                @endif
+            @endif
+
+
             </tbody>
         </table>
     </div>
@@ -147,18 +151,21 @@
 
 
             </tr>
+            <tr style="text-align: center !important;">
+                <td colspan="5"><span class="fw-600"></span> {{ $session->description ?? 'N/A' }}</td>
+              </tr>
 
           @endforeach
         </tbody>
       </table>
 
-      <table class="table table-bordered text-1 table-sm">
+      {{-- <table class="table table-bordered text-1 table-sm">
         <tbody>
             <tr style="text-align: center !important;">
                 <td colspan="3"><span class="fw-600"></span> {{ $session->description ?? 'N/A' }}</td>
               </tr>
         </tbody>
-      </table>
+      </table> --}}
 
     </div>
 
@@ -197,15 +204,29 @@
     <div class="btn-group btn-group-sm d-print-none"> <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
         <i class='bx bx-printer'></i> Print</a> </div>
 
+        <div class="btn-group btn-group-sm d-print-none">
+            <a href="{{ route('pdf.download', ['event_registration_id' => $registration->invoice_id]) }}" class="btn btn-light border text-black-50 shadow-none">
+                <i class='bx bxs-file-pdf'></i> Download PDF
+            </a>
+        </div>
 
-            <div class="btn-group btn-group-sm d-print-none">
-                <a href="{{ route('pdf.download', ['event_registration_id' => $registration->invoice_id]) }}" class="btn btn-light border text-black-50 shadow-none">
-                    <i class='bx bxs-file-pdf'></i> Download PDF
-                </a>
-            </div>
+
   </footer>
 </div>
 <!-- Back to My Account Link -->
-<p class="text-center d-print-none"><a href="{{ route('user.dashboard', ['google_uid' => Auth::user()->google_id]) }}">&laquo; Back to My Account</a></p>
+@if(Auth::check() && Auth::user()->google_id)
+    <p class="text-center d-print-none">
+        <a href="{{ route('user.dashboard', ['google_uid' => Auth::user()->google_id]) }}">
+            &laquo; Back to My Account
+        </a>
+    </p>
+@else
+    <p class="text-center d-print-none">
+        <a href="{{ route('google.login') }}">
+            Login to your account
+        </a>
+    </p>
+@endif
+
 </body>
 </html>

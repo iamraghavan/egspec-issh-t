@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AdminAuth;
 use App\Http\Middleware\CheckAuth;
+use App\Http\Middleware\CookieConsentMiddleware;
 use App\Http\Middleware\CountryCodeMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->append(RedirectIfAuthenticated::class);
-        // $middleware->append(AdminAuth::class);
+        $middleware->append(CookieConsentMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

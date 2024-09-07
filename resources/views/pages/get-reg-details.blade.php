@@ -5,7 +5,11 @@
 <meta charset="utf-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="{{ Auth::user()->profile_url }}" rel="icon" />
+@if(Auth::check() && Auth::user()->profile_url)
+    <link href="{{ Auth::user()->profile_url }}" rel="icon" />
+@else
+    <link href="https://coe.egspec.org/images/egspec_logo.png" rel="icon" />
+@endif
 <title>{{ config('app.name') }} - {{ $registration->name }} - {{ $registration->event_registration_id }}</title>
 
 
@@ -196,6 +200,18 @@
   </footer>
 </div>
 <!-- Back to My Account Link -->
-<p class="text-center d-print-none"><a href="{{ route('user.dashboard', ['google_uid' => Auth::user()->google_id]) }}">&laquo; Back to My Account</a></p>
+@if(Auth::check() && Auth::user()->google_id)
+    <p class="text-center d-print-none">
+        <a href="{{ route('user.dashboard', ['google_uid' => Auth::user()->google_id]) }}">
+            &laquo; Back to My Account
+        </a>
+    </p>
+@else
+    <p class="text-center d-print-none">
+        <a href="{{ route('google.login') }}">
+            Login to your account
+        </a>
+    </p>
+@endif
 </body>
 </html>

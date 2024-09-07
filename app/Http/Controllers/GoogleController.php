@@ -28,8 +28,33 @@ class GoogleController extends Controller
 
     private function redirectToRegistration()
     {
-        $eventID = session('event_id');
-        return redirect()->route('register.check', ['id' => $eventID]);
+        return redirect()->route('register.check', ['id' => session('event_id')]);
+    }
+
+    public function redirectToGooglePopup()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    // Handle Google authentication callback
+    public function handleGoogleCallbackPopup()
+    {
+        try {
+            $user = Socialite::driver('google')->user();
+            $authUser = $this->findOrCreateUser($user);
+            Auth::login($authUser);
+            session(['google_uid' => $authUser->google_id]);
+
+            return response()->json([
+                'success' => true,
+                'redirect' => route('home') // Adjust this as needed
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication failed. Please try again.'
+            ]);
+        }
     }
 
     private function redirectToGoogleWithIntendedUrl()
@@ -59,31 +84,17 @@ class GoogleController extends Controller
 
     private function findOrCreateUser($googleUser)
     {
-        $existingUser = User::where('email', $googleUser->email)->first();
-        return $existingUser ? $this->updateUser($existingUser, $googleUser) : $this->createUser($googleUser);
-    }
-
-    private function updateUser($existingUser, $googleUser)
-    {
-        $existingUser->update([
-            'name' => $googleUser->name,
-            'profile_url' => $googleUser->avatar,
-            'google_id' => $googleUser->id,
-        ]);
-        return $existingUser;
-    }
-
-    private function createUser($googleUser)
-    {
-        return User::create([
-            'name' => $googleUser->name,
-            'email' => $googleUser->email,
-            'profile_url' => $googleUser->avatar,
-            'password' => bcrypt($googleUser->id),
-            'google_id' => $googleUser->id,
-            'is_admin' => 0,
-            'roles' => 'user',
-        ]);
+        return User::updateOrCreate(
+            ['email' => $googleUser->email],
+            [
+                'name' => $googleUser->name,
+                'profile_url' => $googleUser->avatar,
+                'google_id' => $googleUser->id,
+                'password' => bcrypt($googleUser->id), // Consider using a more secure approach
+                'is_admin' => 0,
+                'roles' => 'user',
+            ]
+        );
     }
 
     private function redirectAfterLogin()
@@ -91,13 +102,9 @@ class GoogleController extends Controller
         $eventID = session('event_id');
         session()->forget('event_id');
 
-        if ($eventID) {
-            return redirect()->route('register.page', ['id' => $eventID]);
-        }
-
-        $intendedUrl = session('url.intended', '/');
-        session()->forget('url.intended');
-        return redirect($intendedUrl);
+        return $eventID
+            ? redirect()->route('register.page', ['id' => $eventID])
+            : redirect(session('url.intended', '/'));
     }
 
     private function handleAuthenticationError(\Exception $e)
@@ -139,23 +146,17 @@ class GoogleController extends Controller
 
     private function findOrCreateUserFromPayload($payload)
     {
-        $googleUid = $payload['sub'];
-        $email = $payload['email'];
-        $name = $payload['name'];
-        $profilePicture = $payload['picture'];
-
-        $existingUser = User::where('email', $email)->first();
-        return $existingUser ? $this->updateUser($existingUser, (object)[
-            'id' => $googleUid,
-            'name' => $name,
-            'email' => $email,
-            'avatar' => $profilePicture
-        ]) : $this->createUser((object)[
-            'id' => $googleUid,
-            'name' => $name,
-            'email' => $email,
-            'avatar' => $profilePicture
-        ]);
+        return User::updateOrCreate(
+            ['email' => $payload['email']],
+            [
+                'name' => $payload['name'],
+                'profile_url' => $payload['picture'],
+                'google_id' => $payload['sub'],
+                'password' => bcrypt($payload['sub']), // Consider using a more secure approach
+                'is_admin' => 0,
+                'roles' => 'user',
+            ]
+        );
     }
 
     private function handleSuccessfulLoginResponse($user)
@@ -163,15 +164,13 @@ class GoogleController extends Controller
         $eventID = session('event_id');
         session()->forget('event_id');
 
-        if ($eventID) {
-            return redirect()->route('register.page', ['id' => $eventID]);
-        }
-
-        return response()->json([
-            'success' => true,
-            'google_uid' => $user->google_id,
-            'redirect' => route('user.dashboard', $user->google_id),
-        ]);
+        return $eventID
+            ? redirect()->route('register.page', ['id' => $eventID])
+            : response()->json([
+                'success' => true,
+                'google_uid' => $user->google_id,
+                'redirect' => route('user.dashboard', $user->google_id),
+            ]);
     }
 
     private function handleOneTapError(\Exception $e)

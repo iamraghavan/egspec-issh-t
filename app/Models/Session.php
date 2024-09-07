@@ -32,5 +32,17 @@ class Session extends Model
         'meeting_url',
         'price_type',
         'amount',
+        'is_hide',
     ];
+
+    // Define the relationship with EventRegistration
+    public function eventRegistrations()
+    {
+        return $this->hasMany(EventRegistrationMod::class, 'event_id');
+    }
+
+    public function session()
+    {
+        return $this->belongsTo(Session::class, 'event_id');
+    }
 }

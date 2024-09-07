@@ -28,6 +28,7 @@
 		<title>EGSPEC Event Conference & Community</title>
 
         <link rel="icon" type="image/png" href="{{ asset("/assets/images/favicon.png") }}">
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
 
         {{-- <meta name="csrf-token" content="{{ csrf_token() }}"> --}}
 
@@ -41,6 +42,7 @@
 
 
         <x-google-sign-in />
+        @include('partials.cookie-consent', ['show_cookie_notice' => $show_cookie_notice ?? false])
 
 
         <x-header />
@@ -101,6 +103,24 @@
 
         window.onload = fetchUserIP;
         </script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var acceptButton = document.getElementById('acceptCookies');
+        if (acceptButton) {
+            acceptButton.addEventListener('click', function() {
+                fetch('{{ route('acceptCookieConsent') }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                    },
+                }).then(function() {
+                    document.getElementById('cookieConsent').style.display = 'none';
+                });
+            });
+        }
+    });
+</script>
     </body>
 </html>
 

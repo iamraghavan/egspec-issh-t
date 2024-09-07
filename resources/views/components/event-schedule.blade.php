@@ -205,66 +205,59 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hystmodal@0.7.7/dist/hystmodal.min.css">
 <!-- HystModal JS -->
 <script src="https://cdn.jsdelivr.net/npm/hystmodal@0.7.7/dist/hystmodal.min.js"></script>
-
-
 <script>
-   document.addEventListener('DOMContentLoaded', function () {
-    // Initialize Bootstrap Tabs
-    var tabTriggerList = [].slice.call(document.querySelectorAll('#departmentTabs a'));
-    tabTriggerList.forEach(function (tabTriggerEl) {
-        var tabTrigger = new bootstrap.Tab(tabTriggerEl);
-        tabTrigger.show();
+    document.addEventListener('DOMContentLoaded', function () {
+        initializeBootstrapTabs();
+        initializeHystModal();
+        addEventListenersToRows();
     });
 
-    // Initialize HystModal
-    const modal = new HystModal({
-        linkAttributeName: "data-hystmodal"
-    });
-
-    // Function to open the modal and set content
-    function openEventDetails(event) {
-        const modalTitle = document.getElementById('modal-title');
-        const modalDate = document.getElementById('modal-date');
-        const modalTime = document.getElementById('modal-time');
-        const modalVenue = document.getElementById('modal-venue');
-        const modalMode = document.getElementById('modal-mode');
-        const modalDescription = document.getElementById('modal-description');
-        const modalConductedBy = document.getElementById('modal-conducted-by');
-        const modalLocation = document.getElementById('modal-location');
-        const modalPrice = document.getElementById('modal-price');
-        const registerButton = document.getElementById('register-button');
-        const viewDetailsButton = document.getElementById('view-details-button');
-
-        modalTitle.textContent = event.title;
-        modalDate.textContent = event.date;
-        modalTime.textContent = `${event.start_time} – ${event.end_time}`;
-        modalVenue.textContent = event.venue;
-        modalMode.textContent = event.mode;
-        modalDescription.textContent = event.description;
-        modalConductedBy.textContent = event.conducted_by;
-        modalLocation.textContent = event.location;
-        modalPrice.textContent = event.price_type === 'Idle' ? `₹${parseFloat(event.amount).toFixed(2)}` : 'Free';
-
-        // Set the URLs for the buttons
-        registerButton.href = `{{ route('register.page', '') }}/${event.id}`;
-        viewDetailsButton.href = `{{ route('events.show', '') }}/${event.slug}`;
-
-        // Open the modal
-        modal.open('#eventDetailsModal');
+    function initializeBootstrapTabs() {
+        var tabTriggerList = [].slice.call(document.querySelectorAll('#departmentTabs a'));
+        tabTriggerList.forEach(function (tabTriggerEl) {
+            var tabTrigger = new bootstrap.Tab(tabTriggerEl);
+            tabTrigger.show();
+        });
     }
 
-    // Add event listeners to open modal
-    document.querySelectorAll('.row[data-event]').forEach(row => {
-        row.addEventListener('click', function () {
-            const eventData = JSON.parse(this.dataset.event);
-            openEventDetails(eventData);
+    function initializeHystModal() {
+        new HystModal({ linkAttributeName: "data-hystmodal" });
+    }
+
+    function openEventDetails(event) {
+        updateModalContent(event);
+        const modal = document.querySelector('#eventDetailsModal');
+        if (modal) {
+            modal.open('#eventDetailsModal');
+        } else {
+            console.error('Modal not found');
+        }
+    }
+
+    function updateModalContent(event) {
+        document.getElementById('modal-title').textContent = event.title;
+        document.getElementById('modal-date').textContent = event.date;
+        document.getElementById('modal-time').textContent = `${event.start_time} – ${event.end_time}`;
+        document.getElementById('modal-venue').textContent = event.venue;
+        document.getElementById('modal-mode').textContent = event.mode;
+        document.getElementById('modal-description').textContent = event.description;
+        document.getElementById('modal-conducted-by').textContent = event.conducted_by;
+        document.getElementById('modal-location').textContent = event.location;
+        document.getElementById('modal-price').textContent = event.price_type === 'Idle' ? `₹${parseFloat(event.amount).toFixed(2)}` : 'Free';
+
+        // Update button URLs
+        document.getElementById('register-button').href = `{{ route('register.page', '') }}/${event.id}`;
+        document.getElementById('view-details-button').href = `{{ route('events.show', '') }}/${event.slug}`;
+    }
+
+    function addEventListenersToRows() {
+        document.querySelectorAll('.row[data-event]').forEach(row => {
+            row.addEventListener('click', function () {
+                const eventData = JSON.parse(this.dataset.event);
+                openEventDetails(eventData);
+            });
         });
-    });
-});
-
-
-
-</script>
-
+    }
+    </script>
 
 

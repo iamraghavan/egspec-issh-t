@@ -513,7 +513,7 @@ document.addEventListener("DOMContentLoaded", initializePhoneInput);
             document.getElementById('event-venue').textContent = selectedEvent.venue;
 
             updateAmountFieldVisibility(selectedEvent);
-            updateTotalAmount(); // Update total amount when event changes
+            updateTotalAmount();
         }
     }
 

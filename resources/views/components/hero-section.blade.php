@@ -9,10 +9,10 @@
 
                     <div class="banner-soon-content wow fadeInUp animated" data-wow-delay="300ms" data-wow-duration="2000ms">
                         <div id="timer">
-                            <div id="days" x-text="days"></div>
-                            <div id="hours" x-text="hours"></div>
-                            <div id="minutes" x-text="minutes"></div>
-                            <div id="seconds" x-text="seconds"></div>
+                            <div id="days"></div>
+                            <div id="hours"></div>
+                            <div id="minutes"></div>
+                            <div id="seconds"></div>
                         </div>
                     </div>
 
@@ -22,7 +22,7 @@
                     </ul>
 
                     <ul class="banner-btn-list wow fadeInUp animated" data-wow-delay="300ms" data-wow-duration="2000ms">
-                        <li><a href="#" class="default-btn"><i class="bx bx-arrow-to-right"></i> Register Now<span></span></a></li>
+                        <li><a href="{{route('google.popup.login')}}" class="default-btn"><i class="bx bx-arrow-to-right"></i> Register Now<span></span></a></li>
                         <li class="calender-btn"><i class="bx bxs-plus-circle"></i> <a href="#">Add a Calendar</a></li>
                     </ul>
                 </div>
@@ -40,30 +40,44 @@
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 <script>
-    function countdownTimer() {
-        var endTime = new Date("August 10, 2024 11:30:00 GMT+0530"),
-            endTime = endTime.getTime() / 1000,
-            now = new Date(),
-            now = now.getTime() / 1000,
-            timeLeft = endTime - now,
-            days = Math.floor(timeLeft / 86400),
-            hours = Math.floor((timeLeft - 86400 * days) / 3600),
-            minutes = Math.floor((timeLeft - 86400 * days - 3600 * hours) / 60),
-            seconds = Math.floor(
-              timeLeft - 86400 * days - 3600 * hours - 60 * minutes
-            );
-
-        hours < 10 && (hours = "0" + hours),
-        minutes < 10 && (minutes = "0" + minutes),
-        seconds < 10 && (seconds = "0" + seconds);
-
-        $("#days").html(days + "<span>Days</span>");
-        $("#hours").html(hours + "<span>Hours</span>");
-        $("#minutes").html(minutes + "<span>Minutes</span>");
-        $("#seconds").html(seconds + "<span>Seconds</span>");
-
-        setTimeout(countdownTimer, 1000);
+    // Function to format numbers to two digits
+    function formatNumber(num) {
+        return num < 10 ? '0' + num : num;
     }
 
-    countdownTimer();
+    // Function to update the countdown timer
+    function updateCountdown(endTime) {
+        try {
+            const now = Math.floor(Date.now() / 1000);
+            const timeLeft = endTime - now;
+
+            if (timeLeft < 0) {
+                document.getElementById('countdown').innerHTML = "Countdown Ended";
+                return;
+            }
+
+            const days = Math.floor(timeLeft / 86400);
+            const hours = Math.floor((timeLeft % 86400) / 3600);
+            const minutes = Math.floor((timeLeft % 3600) / 60);
+            const seconds = Math.floor(timeLeft % 60);
+
+            document.getElementById('days').innerHTML = `${days}<span> Days</span>`;
+            document.getElementById('hours').innerHTML = `${formatNumber(hours)}<span> Hours</span>`;
+            document.getElementById('minutes').innerHTML = `${formatNumber(minutes)}<span> Minutes</span>`;
+            document.getElementById('seconds').innerHTML = `${formatNumber(seconds)}<span> Seconds</span>`;
+        } catch (error) {
+            console.error('An error occurred while updating the countdown:', error);
+            document.getElementById('countdown').innerHTML = "Error in countdown.";
+        }
+    }
+
+    // Initialize the countdown
+    function initializeCountdown(endDate) {
+        const endTime = new Date(endDate).getTime() / 1000;
+        updateCountdown(endTime);
+        setInterval(() => updateCountdown(endTime), 1000);
+    }
+
+    // Example usage
+    initializeCountdown("September 11, 2024 11:30:00 GMT+0530");
 </script>

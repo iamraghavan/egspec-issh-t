@@ -9,7 +9,13 @@
                     <div class="card-header bg-primary text-white">
                         <h5>Create Session</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h4 class="card-title">Session Details</h4>
+
+
+                                    <p class="card-description"> Session Info </p>
                         <form action="{{ route('sessions.store', ['token' => $token]) }}" method="POST">
                             @csrf
                             @include('admin.pages.sessions.partials.form', ['session' => new App\Models\Session])
@@ -18,10 +24,14 @@
                                 <button type="submit" class="btn btn-primary btn-block">Save Session</button>
                             </div>
                         </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+
 
 @endsection

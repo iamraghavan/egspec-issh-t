@@ -29,7 +29,11 @@ class VerifyController extends Controller
                 $request->session()->put('admin_auth_token', $encodedToken);
 
 
-                return redirect()->route('admin.dashboard', ['token' => $encodedToken, 'login_success' => 'true']);
+                return redirect()->route('admin.dashboard', [
+                    'token' => $encodedToken,
+                    'login_success' => 'true',
+                    'user' => $user
+                ]);
             } else {
                 // If the user is not an admin, log them out and show an error
                 Auth::guard('admin')->logout();

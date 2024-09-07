@@ -31,8 +31,8 @@
                 <div class="single-footer-widget">
                     <h3>Other Link</h3>
                     <ul class="footer-links-list">
-                        <li><a href="#">Privacy Policy</a></li>
-                        <li><a href="#">Terms &amp; Conditions</a></li>
+                        <li><a href="{{route('privacy-policy')}}">Privacy Policy</a></li>
+                        <li><a href="{{route('terms-and-services')}}">Terms &amp; Services</a></li>
                         <li><a href="#">Cookie Policy</a></li>
                         <li><a href="#">Payment Policy</a></li>
                     </ul>

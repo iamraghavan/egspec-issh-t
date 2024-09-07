@@ -18,22 +18,41 @@ class RedirectIfAuthenticated
      */
     public function handle(Request $request, Closure $next, $guard = null)
     {
-        if (Auth::guard($guard)->check()) {
-            $user = Auth::guard($guard)->user();
-
-            // Ensure the user is authenticated and is an admin
-            if ($user->is_admin) {
-                return redirect()->route('admin.dashboard');
-            } else {
-                // Log out non-admin users who are authenticated
-                Auth::guard($guard)->logout();
-
-                return redirect()->route('login')->withErrors([
-                    'restricted_area' => 'Access denied. Only Event Organization can access this area.',
-                ]);
-            }
+        if ($this->isAuthenticated($guard)) {
+            return $this->handleAuthenticatedUser($guard);
         }
 
         return $next($request);
+    }
+
+    /**
+     * Check if the user is authenticated.
+     *
+     * @param  string|null  $guard
+     * @return bool
+     */
+    private function isAuthenticated($guard)
+    {
+        return Auth::guard($guard)->check();
+    }
+
+    /**
+     * Handle actions for authenticated users.
+     *
+     * @param  string|null  $guard
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    private function handleAuthenticatedUser($guard)
+    {
+        $user = Auth::guard($guard)->user();
+
+        if ($user->is_admin) {
+            return redirect()->route('admin.dashboard');
+        } else {
+            Auth::guard($guard)->logout();
+            return redirect()->route('login')->withErrors([
+                'restricted_area' => 'Access denied. Only Event Organization can access this area.',
+            ]);
+        }
     }
 }
